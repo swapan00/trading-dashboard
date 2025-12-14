@@ -32,41 +32,30 @@ async function qxFetchCandles() {
   }
 }
 
-// Scalping analysis
+/* ============================
+   UPDATED SCALPING LOGIC
+   (Flat market‑এও signal দেয়)
+   ============================ */
+
 function qxAnalyzeScalping(candles) {
   if (!candles || candles.length < 5) return null;
 
   const recent = candles.slice(-5);
 
-  let up = 0,
-    down = 0,
-    strongUp = 0,
-    strongDown = 0;
+  let up = 0;
+  let down = 0;
 
-  recent.forEach((c) => {
-    const open = parseFloat(c[1]);
-    const high = parseFloat(c[2]);
-    const low = parseFloat(c[3]);
+  recent.forEach(c => {
+    const open  = parseFloat(c[1]);
     const close = parseFloat(c[4]);
 
-    const body = Math.abs(close - open);
-    const range = high - low || 1;
-
-    if (body < open * 0.0002) return;
-
-    const ratio = body / range;
-
-    if (close > open) {
-      up++;
-      if (ratio > 0.6) strongUp++;
-    } else if (close < open) {
-      down++;
-      if (ratio > 0.6) strongDown++;
-    }
+    if (close > open) up++;
+    else if (close < open) down++;
   });
 
-  if (up >= 3 && strongUp >= 1 && up > down) return "call";
-  if (down >= 3 && strongDown >= 1 && down > up) return "put";
+  // Simple scalping rule:
+  if (up >= 3) return "call";
+  if (down >= 3) return "put";
 
   return null;
 }
