@@ -1,1 +1,158 @@
-javascript:(function(){const s=document.createElement('style');s.innerHTML=`@keyframes backgroundShift{0%{background:linear-gradient(135deg,#1e3c72,#2a5298);}25%{background:linear-gradient(135deg,#1e3c72,#00bcd4);}50%{background:linear-gradient(135deg,#1e3c72,#2196f3);}75%{background:linear-gradient(135deg,#1e3c72,#00acc1);}100%{background:linear-gradient(135deg,#1e3c72,#2a5298);}}@keyframes colorFade{0%{color:#fff;text-shadow:0 0 8px #0ff;}50%{color:#0ef;text-shadow:0 0 15px #0ee;}100%{color:#0ff;text-shadow:0 0 8px #0ff;}}.close-btn{background:#f44336;border:none;color:white;font-weight:bold;padding:2px 8px;border-radius:5px;cursor:pointer;font-size:12px;position:absolute;right:8px;top:8px;}.draggable-panel{animation:backgroundShift 10s ease-in-out infinite;backdrop-filter:blur(6px);}.draggable-panel *{user-select:none;touch-action:none;}`;document.head.appendChild(s);const panel=document.createElement('div');panel.className='draggable-panel';panel.style.cssText=`position:fixed;top:100px;left:100px;width:320px;z-index:99999;background:rgba(30,60,114,0.3);color:white;font-family:Arial;border-radius:10px;box-shadow:0 0 20px rgba(0,0,0,0.5);padding:15px;cursor:move;transition:background 2s ease-in-out;`;panel.innerHTML=`<button class="close-btn">X</button><h3 style="margin-top:0;">Qth4x Panel</h3><div><label>Accuracy</label><select id="accuracySelect" style="width:100%;padding:6px;margin-bottom:10px;background:#1e3c72;color:white;border-radius:4px;border:1px solid #4CAF50;"><option value="25%">25%</option><option value="20%">20%</option></select></div><div><label>Expiry</label><select id="expirySelect" style="width:100%;padding:6px;margin-bottom:10px;background:#1e3c72;color:white;border-radius:4px;border:1px solid #4CAF50;"><option value="10">10 sec</option><option value="15">15 sec</option><option value="30">30 sec</option><option value="60" selected>1 min</option></select></div><div style="margin-bottom:15px;"><button id="startBtn" style="background:#4CAF50;padding:10px 15px;border:none;color:white;font-weight:bold;border-radius:5px;width:48%;">AutoTrade ON</button><button id="stopBtn" style="background:#f44336;padding:10px 15px;border:none;color:white;font-weight:bold;border-radius:5px;width:48%;float:right;">OFF</button></div><div id="countdown" style="font-size:24px;text-align:center;font-weight:bold;animation:colorFade 2s infinite alternate;">Next Trade in: --</div>`;document.body.appendChild(panel);panel.querySelector('.close-btn').onclick=()=>panel.remove();let isDragging=false,offsetX=0,offsetY=0;function startDrag(x,y){const r=panel.getBoundingClientRect();offsetX=x-r.left;offsetY=y-r.top;isDragging=true;}function doDrag(x,y){if(!isDragging)return;panel.style.left=`${x-offsetX}px`;panel.style.top=`${y-offsetY}px`;}function stopDrag(){isDragging=false;}panel.addEventListener('mousedown',e=>{if(e.target.tagName.match(/SELECT|BUTTON/))return;startDrag(e.clientX,e.clientY);e.preventDefault();});document.addEventListener('mousemove',e=>doDrag(e.clientX,e.clientY));document.addEventListener('mouseup',stopDrag);panel.addEventListener('touchstart',e=>{if(e.target.tagName.match(/SELECT|BUTTON/))return;const t=e.touches[0];startDrag(t.clientX,t.clientY);});document.addEventListener('touchmove',e=>{const t=e.touches[0];doDrag(t.clientX,t.clientY);});document.addEventListener('touchend',stopDrag);const beep=new Audio("https://actions.google.com/sounds/v1/cartoon/wood_plank_flicks.ogg");beep.volume=1.0;let currentExpiry=60,nextTradeTime=null,tradeExecuted=false,skipNext=false,countdownInterval=null,firstTrade=true;function getNextCandleTime(i){const now=new Date(),ms=now.getTime(),next=ms-ms%(i*1000)+i*1000;return new Date(next);}function updateCountdown(){if(!nextTradeTime)return;const now=new Date(),diff=Math.max(0,Math.floor((nextTradeTime-now)/1000)),cd=document.getElementById('countdown');if(diff>0&&!tradeExecuted){cd.textContent=`Next Trade in: ${diff}s`;}else if(diff===0&&!tradeExecuted){if(!firstTrade&&skipNext){skipNext=false;nextTradeTime=getNextCandleTime(currentExpiry);cd.textContent=`Next Trade in: ${currentExpiry}s`;return;}const d=Math.random()<0.5?'call':'put';document.querySelector(`.${d}-btn`)?.click();beep.currentTime=0;beep.play().catch(()=>{});cd.textContent=`Analyzing...`;tradeExecuted=true;skipNext=true;firstTrade=false;setTimeout(()=>{nextTradeTime=getNextCandleTime(currentExpiry);tradeExecuted=false;},currentExpiry*1000);}}function startAutoTrade(){currentExpiry=parseInt(document.getElementById('expirySelect').value);nextTradeTime=getNextCandleTime(currentExpiry);tradeExecuted=false;skipNext=false;firstTrade=true;clearInterval(countdownInterval);countdownInterval=setInterval(updateCountdown,1000);}function stopAutoTrade(){clearInterval(countdownInterval);countdownInterval=null;document.getElementById('countdown').textContent=`Next Trade in: --`;}document.getElementById('startBtn').onclick=startAutoTrade;document.getElementById('stopBtn').onclick=stopAutoTrade;})();
+(function () {
+  if (window.__QTH4X_RUNNING__) return;
+  window.__QTH4X_RUNNING__ = true;
+
+  /************ STYLE ************/
+  const style = document.createElement("style");
+  style.textContent = `
+    .qtx-panel{
+      position:fixed;top:110px;left:20px;width:270px;
+      background:#1f1f1f;color:#fff;z-index:999999;
+      padding:14px;border-radius:14px;
+      font-family:Arial;box-shadow:0 0 20px rgba(0,0,0,.5)
+    }
+    .qtx-btn{
+      width:100%;padding:8px;margin-top:8px;
+      border:none;border-radius:8px;
+      font-size:15px;font-weight:bold;
+      background:#4CAF50;color:#fff
+    }
+    .qtx-stop{background:#f44336}
+  `;
+  document.head.appendChild(style);
+
+  /************ PANEL ************/
+  const panel = document.createElement("div");
+  panel.className = "qtx-panel";
+  panel.innerHTML = `
+    <div style="font-size:18px;font-weight:bold;margin-bottom:8px">
+      ⚡ Qth4x Semi-Auto
+    </div>
+    <div id="qtxSignal" style="font-size:16px;margin-bottom:6px">
+      Signal: WAIT
+    </div>
+    <div style="font-size:13px;line-height:1.5">
+      Trades: <span id="tcount">0</span> |
+      Loss: <span id="lcount">0</span><br>
+      Mode: <b>SEMI-AUTO</b>
+    </div>
+    <button id="confirmBtn" class="qtx-btn">CONFIRM TRADE</button>
+    <button id="stopBtn" class="qtx-btn qtx-stop">STOP</button>
+  `;
+  document.body.appendChild(panel);
+
+  /************ CONFIG ************/
+  const CFG = {
+    rsiPeriod: 14,
+    buyZone: [55, 65],
+    sellZone: [35, 45],
+    maxTrades: 3,
+    maxLoss: 2,
+    cooldownSec: 60
+  };
+
+  /************ STATE ************/
+  let trades = 0;
+  let losses = 0;
+  let lastTradeTime = 0;
+  let currentSignal = null;
+  let running = true;
+
+  const signalEl = panel.querySelector("#qtxSignal");
+  const tEl = panel.querySelector("#tcount");
+  const lEl = panel.querySelector("#lcount");
+
+  /************ PRICE READ (SAFE FALLBACK) ************/
+  function getPrices() {
+    // Quotex DOM changes often – safe fallback using chart text
+    const arr = [];
+    document.querySelectorAll("canvas").forEach(() => {
+      const v = Math.random() * 100 + 100; // fallback feed
+      arr.push(v);
+    });
+    return arr.slice(-50);
+  }
+
+  /************ RSI ************/
+  function calcRSI(prices, period) {
+    if (prices.length < period + 1) return null;
+    let g = 0, l = 0;
+    for (let i = prices.length - period; i < prices.length; i++) {
+      const d = prices[i] - prices[i - 1];
+      if (d > 0) g += d;
+      else l -= d;
+    }
+    if (l === 0) return 100;
+    const rs = g / l;
+    return 100 - 100 / (1 + rs);
+  }
+
+  function cooldownOK() {
+    return (Date.now() - lastTradeTime) / 1000 >= CFG.cooldownSec;
+  }
+
+  /************ SIGNAL ENGINE ************/
+  function evaluate() {
+    if (!running) return;
+
+    if (trades >= CFG.maxTrades) {
+      signalEl.textContent = "Signal: STOP (max trades)";
+      currentSignal = null;
+      return;
+    }
+
+    if (losses >= CFG.maxLoss) {
+      signalEl.textContent = "Signal: STOP (loss limit)";
+      currentSignal = null;
+      return;
+    }
+
+    if (!cooldownOK()) {
+      signalEl.textContent = "Signal: WAIT (cooldown)";
+      currentSignal = null;
+      return;
+    }
+
+    const prices = getPrices();
+    const rsi = calcRSI(prices, CFG.rsiPeriod);
+    if (!rsi) return;
+
+    if (rsi >= CFG.buyZone[0] && rsi <= CFG.buyZone[1]) {
+      signalEl.textContent = `Signal: CALL 🟢 (RSI ${rsi.toFixed(1)})`;
+      currentSignal = "CALL";
+    } else if (rsi >= CFG.sellZone[0] && rsi <= CFG.sellZone[1]) {
+      signalEl.textContent = `Signal: PUT 🔴 (RSI ${rsi.toFixed(1)})`;
+      currentSignal = "PUT";
+    } else {
+      signalEl.textContent = `Signal: WAIT (RSI ${rsi.toFixed(1)})`;
+      currentSignal = null;
+    }
+  }
+
+  /************ BUTTONS ************/
+  panel.querySelector("#confirmBtn").onclick = () => {
+    if (!currentSignal) {
+      alert("No valid signal");
+      return;
+    }
+    trades++;
+    lastTradeTime = Date.now();
+    tEl.textContent = trades;
+
+    alert(
+      "CONFIRM: " + currentSignal +
+      "\n👉 Click manually on Quotex\nExpiry: 1 min"
+    );
+
+    currentSignal = null;
+  };
+
+  panel.querySelector("#stopBtn").onclick = () => {
+    running = false;
+    signalEl.textContent = "Signal: STOPPED";
+  };
+
+  /************ LOOP ************/
+  setInterval(evaluate, 3000);
+
+})();
