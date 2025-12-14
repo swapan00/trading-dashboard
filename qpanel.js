@@ -3,9 +3,9 @@
    Source: Binance BTCUSDT 1m
    ============================ */
 
-const QX_API_SYMBOL = "BTCUSDT";     // Proxy symbol for OTC
-const QX_API_INTERVAL = "1m";        // Scalping timeframe
-const QX_API_LIMIT = 30;             // Last 30 candles
+const QX_API_SYMBOL = "BTCUSDT";
+const QX_API_INTERVAL = "1m";
+const QX_API_LIMIT = 10;
 
 const QX_API_URL =
   "https://api.binance.com/api/v3/klines?symbol=" +
@@ -15,12 +15,11 @@ const QX_API_URL =
   "&limit=" +
   QX_API_LIMIT;
 
-// Cache
 let QX_lastSignal = null;
 let QX_lastFetchTime = 0;
-const QX_SIGNAL_TTL = 5000; // 5 seconds
+const QX_SIGNAL_TTL = 5000;
 
-// Fetch candles from Binance
+// Fetch candles
 async function qxFetchCandles() {
   try {
     const res = await fetch(QX_API_URL);
@@ -33,31 +32,36 @@ async function qxFetchCandles() {
 }
 
 /* ============================
-   UPDATED SCALPING LOGIC
-   (Flat market‑এও signal দেয়)
+   ULTRA SIMPLE SCALPING LOGIC
+   (NEVER RETURNS NULL)
    ============================ */
 
 function qxAnalyzeScalping(candles) {
-  if (!candles || candles.length < 5) return null;
+  if (!candles || candles.length < 3) return "call";
 
-  const recent = candles.slice(-5);
+  const last3 = candles.slice(-3);
 
   let up = 0;
   let down = 0;
 
-  recent.forEach(c => {
-    const open  = parseFloat(c[1]);
+  last3.forEach(c => {
+    const open = parseFloat(c[1]);
     const close = parseFloat(c[4]);
 
     if (close > open) up++;
     else if (close < open) down++;
   });
 
-  // Simple scalping rule:
-  if (up >= 3) return "call";
-  if (down >= 3) return "put";
+  // Majority rule
+  if (up >= 2) return "call";
+  if (down >= 2) return "put";
 
-  return null;
+  // If mixed → use last candle
+  const last = last3[last3.length - 1];
+  const open = parseFloat(last[1]);
+  const close = parseFloat(last[4]);
+
+  return close > open ? "call" : "put";
 }
 
 // Get external signal
@@ -79,7 +83,7 @@ async function qxGetExternalSignal() {
 }
 
 // Background updater
-let QX_latestDirection = null;
+let QX_latestDirection = "call"; // default fallback
 
 setInterval(async () => {
   QX_latestDirection = await qxGetExternalSignal();
@@ -87,5 +91,5 @@ setInterval(async () => {
 
 // Main function used by your panel
 function getAutoDirection() {
-  return QX_latestDirection; // "call" / "put" / null
+  return QX_latestDirection; // always "call" or "put"
 }
