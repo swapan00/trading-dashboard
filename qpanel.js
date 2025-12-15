@@ -179,3 +179,55 @@
 
   setInterval(evaluate, 3000);
 })();
+
+
+// ---------- DRAG SUPPORT ----------
+(function enableDrag(panel){
+
+  let isDown = false;
+  let offsetX = 0;
+  let offsetY = 0;
+
+  function start(x, y) {
+    const rect = panel.getBoundingClientRect();
+    offsetX = x - rect.left;
+    offsetY = y - rect.top;
+    isDown = true;
+  }
+
+  function move(x, y) {
+    if (!isDown) return;
+    panel.style.left = (x - offsetX) + "px";
+    panel.style.top  = (y - offsetY) + "px";
+  }
+
+  function end() {
+    isDown = false;
+  }
+
+  /* Desktop */
+  panel.addEventListener("mousedown", e => {
+    if (e.target.tagName === "BUTTON") return;
+    start(e.clientX, e.clientY);
+  });
+
+  document.addEventListener("mousemove", e => move(e.clientX, e.clientY));
+  document.addEventListener("mouseup", end);
+
+  /* Mobile */
+  panel.addEventListener("touchstart", e => {
+    if (e.target.tagName === "BUTTON") return;
+    const t = e.touches[0];
+    start(t.clientX, t.clientY);
+  }, { passive: true });
+
+  document.addEventListener("touchmove", e => {
+    if (!isDown) return;
+    const t = e.touches[0];
+    move(t.clientX, t.clientY);
+  }, { passive: true });
+
+  document.addEventListener("touchend", end);
+
+})(panel);
+
